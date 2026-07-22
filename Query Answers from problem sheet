@@ -1,0 +1,728 @@
+CREATE DATABASE SupplyChainFinanceManagement;
+GO
+
+USE SupplyChainFinanceManagement;
+GO
+
+CREATE TABLE dim_customer (
+    customer_code INT PRIMARY KEY,
+    customer VARCHAR(150) NOT NULL,
+    platform VARCHAR(45) NOT NULL,
+    channel VARCHAR(45) NOT NULL,
+    market VARCHAR(45) NOT NULL,
+    sub_zone VARCHAR(45) NOT NULL,
+    region VARCHAR(45) NOT NULL
+);
+
+CREATE TABLE dim_product (
+    product_code VARCHAR(45) PRIMARY KEY,
+    division VARCHAR(45) NOT NULL,
+    segment VARCHAR(45) NOT NULL,
+    category VARCHAR(45) NOT NULL,
+    product VARCHAR(200) NOT NULL,
+    variant VARCHAR(45) NOT NULL
+);
+
+CREATE TABLE fact_gross_price (
+    product_code VARCHAR(45) NOT NULL,
+    fiscal_year INT NOT NULL,
+    gross_price DECIMAL(15, 4) NOT NULL,
+    PRIMARY KEY (product_code, fiscal_year),
+    FOREIGN KEY (product_code) REFERENCES dim_product(product_code)
+);
+
+CREATE TABLE fact_manufacturing_cost (
+    product_code VARCHAR(45) NOT NULL,
+    cost_year INT NOT NULL,
+    manufacturing_cost DECIMAL(15, 4) NOT NULL,
+    PRIMARY KEY (product_code, cost_year),
+    FOREIGN KEY (product_code) REFERENCES dim_product(product_code)
+);
+
+CREATE TABLE fact_freight_cost (
+    market VARCHAR(45) NOT NULL,
+    fiscal_year INT NOT NULL,
+    freight_pct DECIMAL(5, 4) NOT NULL,
+    other_cost_pct DECIMAL(5, 4) NOT NULL,
+    PRIMARY KEY (market, fiscal_year)
+);
+
+
+CREATE TABLE fact_pre_invoice_deductions (
+    customer_code INT NOT NULL,
+    fiscal_year INT NOT NULL,
+    pre_invoice_discount_pct DECIMAL(5, 4) NOT NULL,
+    PRIMARY KEY (customer_code, fiscal_year),
+    FOREIGN KEY (customer_code) REFERENCES dim_customer(customer_code)
+);
+
+CREATE TABLE fact_post_invoice_deductions (
+    customer_code INT NOT NULL,
+    product_code VARCHAR(45) NOT NULL,
+    date DATE NOT NULL,
+    discounts_pct DECIMAL(5, 4) NOT NULL,
+    other_deductions_pct DECIMAL(5, 4) NOT NULL,
+    PRIMARY KEY (customer_code, product_code, date),
+    FOREIGN KEY (customer_code) REFERENCES dim_customer(customer_code),
+    FOREIGN KEY (product_code) REFERENCES dim_product(product_code)
+);
+
+CREATE TABLE fact_sales_monthly (
+    date DATE NOT NULL,
+    product_code VARCHAR(45) NOT NULL,
+    customer_code INT NOT NULL,
+    sold_quantity INT NOT NULL,
+    PRIMARY KEY (date, product_code, customer_code),
+    FOREIGN KEY (customer_code) REFERENCES dim_customer(customer_code),
+    FOREIGN KEY (product_code) REFERENCES dim_product(product_code)
+);
+
+CREATE TABLE fact_forecast_monthly (
+    date DATE NOT NULL,
+    fiscal_year INT NOT NULL,
+    product_code VARCHAR(45) NOT NULL,
+    customer_code INT NOT NULL,
+    forecast_quantity INT NOT NULL,
+    PRIMARY KEY (date, product_code, customer_code),
+    FOREIGN KEY (customer_code) REFERENCES dim_customer(customer_code),
+    FOREIGN KEY (product_code) REFERENCES dim_product(product_code)
+);
+
+INSERT INTO dim_customer (customer_code, customer, platform, channel, market, sub_zone, region) VALUES
+(70020104, 'Atliq e Store', 'E-Commerce', 'Direct', 'Austria', 'NE', 'EU'),
+(70021096, 'Atliq e Store', 'E-Commerce', 'Direct', 'United Kingdom', 'NE', 'EU'),
+(70022084, 'Atliq Exclusive', 'Brick & Mortar', 'Direct', 'USA', 'NA', 'NA'),
+(70022085, 'Atliq e Store', 'E-Commerce', 'Direct', 'USA', 'NA', 'NA'),
+(70023031, 'Atliq Exclusive', 'Brick & Mortar', 'Direct', 'Canada', 'NA', 'NA'),
+(70023032, 'Atliq e Store', 'E-Commerce', 'Direct', 'Canada', 'NA', 'NA'),
+(70026206, 'Atliq e Store', 'E-Commerce', 'Direct', 'Mexico', 'LATAM', 'LATAM'),
+(70027208, 'Atliq e Store', 'E-Commerce', 'Direct', 'Brazil', 'LATAM', 'LATAM'),
+(80001019, 'Neptune', 'Brick & Mortar', 'Distributor', 'China', 'ROA', 'APAC'),
+(80006154, 'Synthetic', 'Brick & Mortar', 'Distributor', 'Philippines', 'ROA', 'APAC'),
+(80006155, 'Novus', 'Brick & Mortar', 'Distributor', 'Philippines', 'ROA', 'APAC');
+
+INSERT INTO dim_product (product_code, division, segment, category, product, variant) VALUES
+('A1919150403', 'P & A', 'Peripherals', 'MotherBoard', 'AQ MB Lito', 'Plus 2'),
+('A1920150404', 'P & A', 'Peripherals', 'MotherBoard', 'AQ MB Lito', 'Premium'),
+('A2020150501', 'P & A', 'Peripherals', 'MotherBoard', 'AQ MB Lito 2', 'Standard'),
+('A2020150502', 'P & A', 'Peripherals', 'MotherBoard', 'AQ MB Lito 2', 'Plus 1'),
+('A2021150503', 'P & A', 'Peripherals', 'MotherBoard', 'AQ MB Lito 2', 'Plus 2'),
+('A2021150504', 'P & A', 'Peripherals', 'MotherBoard', 'AQ MB Lito 2', 'Premium'),
+('A2118150101', 'P & A', 'Accessories', 'Mouse', 'AQ Master wired x1 Ms', 'Standard 1'),
+('A2118150102', 'P & A', 'Accessories', 'Mouse', 'AQ Master wired x1 Ms', 'Standard 2'),
+('A2118150103', 'P & A', 'Accessories', 'Mouse', 'AQ Master wired x1 Ms', 'Plus 1'),
+('A2118150104', 'P & A', 'Accessories', 'Mouse', 'AQ Master wired x1 Ms', 'Plus 2'),
+('A2118150105', 'P & A', 'Accessories', 'Mouse', 'AQ Master wired x1 Ms', 'Premium 1');
+
+ALTER TABLE fact_gross_price NOCHECK CONSTRAINT ALL;
+INSERT INTO fact_gross_price (product_code, fiscal_year, gross_price) VALUES
+('A0118150101', 2018, 15.3952),
+('A0118150101', 2019, 14.4392),
+('A0118150101', 2020, 16.2323),
+('A0118150101', 2021, 19.0573),
+('A0118150102', 2018, 19.5875),
+('A0118150102', 2019, 18.5595),
+('A0118150102', 2020, 19.8577),
+('A0118150102', 2021, 21.4565),
+('A0118150103', 2018, 19.3630),
+('A0118150103', 2019, 19.3442),
+('A0118150103', 2020, 22.1317);
+ALTER TABLE fact_gross_price CHECK CONSTRAINT ALL;
+
+
+ALTER TABLE fact_manufacturing_cost NOCHECK CONSTRAINT ALL;
+INSERT INTO fact_manufacturing_cost (product_code, cost_year, manufacturing_cost) VALUES
+('A0118150101', 2018, 4.6190),
+('A0118150101', 2019, 4.2033),
+('A0118150101', 2020, 5.0207),
+('A0118150101', 2021, 5.5172),
+('A0118150102', 2018, 5.6036),
+('A0118150102', 2019, 5.3235),
+('A0118150102', 2020, 5.7180),
+('A0118150102', 2021, 6.2835),
+('A0118150103', 2018, 5.9469),
+('A0118150103', 2019, 5.5306),
+('A0118150103', 2020, 6.3264);
+
+ALTER TABLE fact_manufacturing_cost CHECK CONSTRAINT ALL;
+
+
+ALTER TABLE fact_freight_cost NOCHECK CONSTRAINT ALL;
+INSERT INTO fact_freight_cost (market, fiscal_year, freight_pct, other_cost_pct) VALUES
+('Germany', 2020, 0.0226, 0.0060),
+('Germany', 2021, 0.0226, 0.0060),
+('Germany', 2022, 0.0226, 0.0060),
+('India', 2018, 0.0244, 0.0026),
+('India', 2019, 0.0219, 0.0057),
+('India', 2020, 0.0309, 0.0029),
+('India', 2021, 0.0309, 0.0029),
+('India', 2022, 0.0309, 0.0029),
+('Indonesia', 2018, 0.0190, 0.0042),
+('Indonesia', 2019, 0.0187, 0.0052),
+('Indonesia', 2020, 0.0195, 0.0023);
+ALTER TABLE fact_freight_cost CHECK CONSTRAINT ALL;
+
+
+ALTER TABLE fact_pre_invoice_deductions NOCHECK CONSTRAINT ALL;
+INSERT INTO fact_pre_invoice_deductions (customer_code, fiscal_year, pre_invoice_discount_pct) VALUES
+(70002017, 2018, 0.0824),
+(70002017, 2019, 0.0777),
+(70002017, 2020, 0.0735),
+(70002017, 2021, 0.0703),
+(70002017, 2022, 0.1057),
+(70002018, 2018, 0.2956),
+(70002018, 2019, 0.2577),
+(70002018, 2020, 0.2255),
+(70002018, 2021, 0.2061),
+(70002018, 2022, 0.2931),
+(70003181, 2018, 0.0536);
+ALTER TABLE fact_pre_invoice_deductions CHECK CONSTRAINT ALL;
+
+
+ALTER TABLE fact_post_invoice_deductions NOCHECK CONSTRAINT ALL;
+INSERT INTO fact_post_invoice_deductions (customer_code, product_code, date, discounts_pct, other_deductions_pct) VALUES
+(70002017, 'A0118150101', '2017-09-01', 0.2660, 0.0719),
+(70002017, 'A0118150101', '2017-10-01', 0.3090, 0.0976),
+(70002017, 'A0118150101', '2017-11-01', 0.3313, 0.0752),
+(70002017, 'A0118150101', '2018-01-01', 0.2958, 0.0720),
+(70002017, 'A0118150101', '2018-02-01', 0.3208, 0.0793),
+(70002017, 'A0118150101', '2018-03-01', 0.2635, 0.1007),
+(70002017, 'A0118150101', '2018-05-01', 0.2231, 0.0820),
+(70002017, 'A0118150101', '2018-06-01', 0.3020, 0.0791),
+(70002017, 'A0118150101', '2018-07-01', 0.3123, 0.0929),
+(70002017, 'A0118150101', '2018-09-01', 0.1530, 0.1288),
+(70002017, 'A0118150101', '2018-10-01', 0.1363, 0.1542);
+ALTER TABLE fact_post_invoice_deductions CHECK CONSTRAINT ALL;
+
+
+ALTER TABLE fact_sales_monthly NOCHECK CONSTRAINT ALL;
+INSERT INTO fact_sales_monthly (date, product_code, customer_code, sold_quantity) VALUES
+('2017-09-01', 'A0118150101', 70002017, 51),
+('2017-09-01', 'A0118150101', 70002018, 77),
+('2017-09-01', 'A0118150101', 70003181, 17),
+('2017-09-01', 'A0118150101', 70003182, 6),
+('2017-09-01', 'A0118150101', 70006157, 5),
+('2017-09-01', 'A0118150101', 70006158, 7),
+('2017-09-01', 'A0118150101', 70007198, 29),
+('2017-09-01', 'A0118150101', 70007199, 34),
+('2017-09-01', 'A0118150101', 70008169, 22),
+('2017-09-01', 'A0118150101', 70008170, 5),
+('2017-09-01', 'A0118150101', 70011193, 10);
+ALTER TABLE fact_sales_monthly CHECK CONSTRAINT ALL;
+
+ALTER TABLE fact_forecast_monthly NOCHECK CONSTRAINT ALL;
+INSERT INTO fact_forecast_monthly (date, fiscal_year, product_code, customer_code, forecast_quantity) VALUES
+('2017-09-01', 2018, 'A0118150101', 70002017, 18),
+('2017-09-01', 2018, 'A0118150101', 70002018, 11),
+('2017-09-01', 2018, 'A0118150101', 70003181, 9),
+('2017-09-01', 2018, 'A0118150101', 70003182, 6),
+('2017-09-01', 2018, 'A0118150101', 70006157, 5),
+('2017-09-01', 2018, 'A0118150101', 70006158, 6),
+('2017-09-01', 2018, 'A0118150101', 70007198, 4),
+('2017-09-01', 2018, 'A0118150101', 70007199, 7),
+('2017-09-01', 2018, 'A0118150101', 70008169, 7),
+('2017-09-01', 2018, 'A0118150101', 70008170, 8),
+('2017-09-01', 2018, 'A0118150101', 70011193, 5);
+ALTER TABLE fact_forecast_monthly CHECK CONSTRAINT ALL;
+
+
+ALTER TABLE fact_gross_price NOCHECK CONSTRAINT ALL;
+
+INSERT INTO fact_gross_price (product_code, fiscal_year, gross_price) VALUES
+('A0118150101', 2018, 15.3952),
+('A0118150101', 2019, 14.4392),
+('A0118150101', 2020, 16.2323),
+('A0118150101', 2021, 19.0573),
+('A0118150102', 2018, 19.5875),
+('A0118150102', 2019, 18.5595),
+('A0118150102', 2020, 19.8577),
+('A0118150102', 2021, 21.4565),
+('A0118150103', 2018, 19.3630),
+('A0118150103', 2019, 19.3442),
+('A0118150103', 2020, 22.1317);
+ALTER TABLE fact_gross_price CHECK CONSTRAINT ALL;
+
+
+USE SupplyChainFinanceManagement;
+GO
+
+-- 1. Check Dimension Tables
+SELECT  * FROM dim_customer;
+SELECT  * FROM dim_product;
+
+-- 2. Check Pricing & Financial Fact Tables
+SELECT  * FROM fact_gross_price;
+SELECT  * FROM fact_manufacturing_cost;
+SELECT  * FROM fact_freight_cost;
+
+-- 3. Check Discount & Deduction Fact Tables
+SELECT  * FROM fact_pre_invoice_deductions;
+SELECT  * FROM fact_post_invoice_deductions;
+
+-- 4. Check Sales & Forecast Fact Tables
+SELECT * FROM fact_sales_monthly;
+SELECT * FROM fact_forecast_monthly;
+
+
+-- Fiscal Year Determination for '2023-07-15'
+-- YEAR 2023
+
+
+-- Monthly Product Transactions Report
+-- (Gross Sales = sold_quantity * gross_price)
+-- Monthly Gross Sales Report Query
+SELECT 
+    s.date,
+    s.product_code,
+    p.product AS product_name,
+    p.variant,
+    s.sold_quantity,
+    g.gross_price,
+    ROUND(s.sold_quantity * g.gross_price, 2) AS gross_price_total -- Gross Sales calculation
+FROM fact_sales_monthly s
+-- Join with dim_product to get product name and variant
+JOIN dim_product p 
+    ON s.product_code = p.product_code
+-- Join with fact_gross_price matching product_code and fiscal year
+-- (Fiscal year derived by adding 4 months to transaction date: Sept-Dec moves to next year)
+JOIN fact_gross_price g 
+    ON s.product_code = g.product_code
+    AND YEAR(DATEADD(month, 4, s.date)) = g.fiscal_year
+WHERE s.customer_code = 70002017 -- Replace with target customer_code
+  AND g.fiscal_year = 2018      -- Replace with target fiscal_year
+ORDER BY s.date ASC;
+
+--1. Function: Total Forecasted Quantity
+
+-- Function to return total forecast quantity for a given product and fiscal year
+CREATE FUNCTION dbo.get_total_forecast (
+    @p_code VARCHAR(45),
+    @f_year INT
+)
+RETURNS INT
+AS
+BEGIN
+    DECLARE @total_qty INT;
+    SELECT @total_qty = SUM(forecast_quantity)
+    FROM fact_forecast_monthly
+    WHERE product_code = @p_code AND fiscal_year = @f_year;
+    
+    RETURN ISNULL(@total_qty, 0);
+END;
+GO
+
+-- 2. Customers Exceeding Average Monthly Sales Quantity
+
+-- Query to find customers whose total purchased quantity exceeds average monthly sales quantity across all products
+SELECT 
+    customer_code, 
+    SUM(sold_quantity) AS total_customer_sales
+FROM fact_sales_monthly
+GROUP BY customer_code
+HAVING SUM(sold_quantity) > (
+    SELECT AVG(monthly_total)
+    FROM (
+        SELECT SUM(sold_quantity) AS monthly_total
+        FROM fact_sales_monthly
+        GROUP BY date
+    ) AS monthly_avg
+);
+
+-- 3. Stored Procedure: Update Gross Price
+
+-- Procedure to update gross price for a product in a specific fiscal year
+CREATE PROCEDURE sp_update_gross_price
+    @p_code VARCHAR(45),
+    @f_year INT,
+    @new_price DECIMAL(15,4)
+AS
+BEGIN
+    UPDATE fact_gross_price
+    SET gross_price = @new_price
+    WHERE product_code = @p_code AND fiscal_year = @f_year;
+END;
+GO
+
+-- 4.Trigger: Audit Log for Sales Table
+-- Audit log table structure
+CREATE TABLE sales_audit_log (
+    log_id INT IDENTITY(1,1) PRIMARY KEY,
+    date DATE,
+    product_code VARCHAR(45),
+    customer_code INT,
+    sold_quantity INT,
+    inserted_at DATETIME DEFAULT GETDATE()
+);
+GO
+
+-- Trigger to log new insertions into fact_sales_monthly
+CREATE TRIGGER trg_sales_audit
+ON fact_sales_monthly
+AFTER INSERT
+AS
+BEGIN
+    INSERT INTO sales_audit_log (date, product_code, customer_code, sold_quantity)
+    SELECT date, product_code, customer_code, sold_quantity
+    FROM inserted;
+END;
+GO
+
+-- 5. Rank Products by Monthly Sales Quantity Partitioned by Fiscal Year
+-- Window function ranking products by total quantity per fiscal year
+SELECT 
+    YEAR(DATEADD(month, 4, date)) AS fiscal_year,
+    product_code,
+    SUM(sold_quantity) AS total_sold_qty,
+    DENSE_RANK() OVER (
+        PARTITION BY YEAR(DATEADD(month, 4, date)) 
+        ORDER BY SUM(sold_quantity) DESC
+    ) AS product_rank
+FROM fact_sales_monthly
+GROUP BY YEAR(DATEADD(month, 4, date)), product_code;
+
+
+
+-- 6. Concatenate Customer Names via STRING_AGG
+
+WITH DistinctCustomers AS (
+    SELECT DISTINCT 
+        s.product_code,
+        c.customer
+    FROM fact_sales_monthly s
+    JOIN dim_customer c 
+        ON s.customer_code = c.customer_code
+    WHERE s.product_code = 'A0118150101'
+      AND s.date BETWEEN '2017-09-01' AND '2018-08-31'
+)
+SELECT 
+    product_code,
+    STRING_AGG(customer, ', ') AS customer_list
+FROM DistinctCustomers
+GROUP BY product_code;
+
+
+-- Check Dimension Tables
+SELECT TOP 100 * FROM dim_customer;
+SELECT TOP 100 * FROM dim_product;
+
+-- Check Pricing & Financial Fact Tables
+SELECT TOP 100 * FROM fact_gross_price;
+SELECT TOP 100 * FROM fact_manufacturing_cost;
+SELECT TOP 100 * FROM fact_freight_cost;
+
+-- Check Discount & Deduction Fact Tables
+SELECT TOP 100 * FROM fact_pre_invoice_deductions;
+SELECT TOP 100 * FROM fact_post_invoice_deductions;
+
+-- Check Sales & Forecast Fact Tables
+SELECT TOP 100 * FROM fact_sales_monthly;
+SELECT TOP 100 * FROM fact_forecast_monthly;
+
+-- 7. Function: Multi-Year Total Manufacturing Cost
+
+-- Function to calculate total manufacturing cost across a range of years
+CREATE FUNCTION dbo.get_total_mfg_cost (
+    @p_code VARCHAR(45),
+    @start_year INT,
+    @end_year INT
+)
+RETURNS DECIMAL(15,4)
+AS
+BEGIN
+    DECLARE @total_cost DECIMAL(15,4);
+    
+    SELECT @total_cost = SUM(manufacturing_cost)
+    FROM (
+        SELECT manufacturing_cost 
+        FROM fact_manufacturing_cost
+        WHERE product_code = @p_code 
+          AND cost_year BETWEEN @start_year AND @end_year
+    ) AS sub;
+    
+    RETURN ISNULL(@total_cost, 0);
+END;
+GO
+
+-- 8. Inventory Enforced Insertion Procedure & Trigger
+
+-- Assuming an inventory table exists
+CREATE TABLE dim_inventory (
+    product_code VARCHAR(45) PRIMARY KEY,
+    available_qty INT
+);
+GO
+
+-- Trigger preventing sales insertions if sold_quantity exceeds available inventory
+CREATE TRIGGER trg_check_inventory
+ON fact_sales_monthly
+INSTEAD OF INSERT
+AS
+BEGIN
+    IF EXISTS (
+        SELECT 1 
+        FROM inserted i
+        JOIN dim_inventory inv ON i.product_code = inv.product_code
+        WHERE i.sold_quantity > inv.available_qty
+    )
+    BEGIN
+        RAISERROR ('Sold quantity exceeds available inventory!', 16, 1);
+        ROLLBACK TRANSACTION;
+    END
+    ELSE
+    BEGIN
+        INSERT INTO fact_sales_monthly (date, product_code, customer_code, sold_quantity)
+        SELECT date, product_code, customer_code, sold_quantity FROM inserted;
+    END
+END;
+GO
+
+-- 9. Month-over-Month Comparison using LAG
+
+-- Compare monthly product sales with previous month's volume
+SELECT 
+    product_code,
+    date,
+    sold_quantity AS current_month_qty,
+    LAG(sold_quantity, 1, 0) OVER (
+        PARTITION BY product_code 
+        ORDER BY date
+    ) AS previous_month_qty,
+    (sold_quantity - LAG(sold_quantity, 1, 0) OVER (
+        PARTITION BY product_code ORDER BY date
+    )) AS MoM_change
+FROM fact_sales_monthly;
+
+-- 10. Top-Selling Products per Market
+
+-- Top product by sales quantity per market using CTE & window functions
+WITH MarketSales AS (
+    SELECT 
+        c.market,
+        s.product_code,
+        SUM(s.sold_quantity) AS total_qty,
+        DENSE_RANK() OVER (
+            PARTITION BY c.market 
+            ORDER BY SUM(s.sold_quantity) DESC
+        ) AS rnk
+    FROM fact_sales_monthly s
+    JOIN dim_customer c ON s.customer_code = c.customer_code
+    GROUP BY c.market, s.product_code
+)
+SELECT market, product_code, total_qty
+FROM MarketSales
+WHERE rnk = 1;
+
+-- 11. Freight Cost Function & Update Procedure
+
+-- Function to retrieve freight cost percentage for market & fiscal year
+CREATE FUNCTION dbo.get_freight_pct (
+    @market VARCHAR(45),
+    @f_year INT
+)
+RETURNS DECIMAL(5,4)
+AS
+BEGIN
+    DECLARE @pct DECIMAL(5,4);
+    SELECT @pct = freight_pct FROM fact_freight_cost WHERE market = @market AND fiscal_year = @f_year;
+    RETURN ISNULL(@pct, 0);
+END;
+GO
+
+-- 12. Trigger: Automatic Inventory Reduction on Sale
+-- Trigger to deduct sold quantity from inventory upon insertion
+CREATE TRIGGER trg_update_inventory_on_sale
+ON fact_sales_monthly
+AFTER INSERT
+AS
+BEGIN
+    UPDATE inv
+    SET inv.available_qty = inv.available_qty - i.sold_quantity
+    FROM dim_inventory inv
+    JOIN inserted i ON inv.product_code = i.product_code;
+END;
+GO
+
+-- 13. Referential Integrity Check Trigger
+-- Trigger validating product presence in dim_product before insertion
+CREATE TRIGGER trg_enforce_product_fk
+ON fact_sales_monthly
+AFTER INSERT
+AS
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM inserted i
+        WHERE i.product_code NOT IN (SELECT product_code FROM dim_product)
+    )
+    BEGIN
+        RAISERROR ('Invalid Product Code inserted.', 16, 1);
+        ROLLBACK TRANSACTION;
+    END
+END;
+GO
+
+-- 14. Stored Procedure: Month-over-Month Growth Rate
+-- Procedure generating MoM % growth report for a product
+CREATE PROCEDURE sp_product_mom_growth
+    @p_code VARCHAR(45)
+AS
+BEGIN
+    WITH MonthlySales AS (
+        SELECT 
+            date,
+            SUM(sold_quantity) AS current_qty,
+            LAG(SUM(sold_quantity), 1) OVER (ORDER BY date) AS prev_qty
+        FROM fact_sales_monthly
+        WHERE product_code = @p_code
+        GROUP BY date
+    )
+    SELECT 
+        date,
+        current_qty,
+        prev_qty,
+        ROUND(CAST((current_qty - prev_qty) AS FLOAT) / NULLIF(prev_qty, 0) * 100, 2) AS mom_growth_pct
+    FROM MonthlySales;
+END;
+GO
+
+-- 15. Function: Average Discount Percentage
+-- Function returning average discount percentage granted for a product
+CREATE FUNCTION dbo.get_avg_discount (@p_code VARCHAR(45))
+RETURNS DECIMAL(5,4)
+AS
+BEGIN
+    DECLARE @avg_disc DECIMAL(5,4);
+    SELECT @avg_disc = AVG(discounts_pct) 
+    FROM fact_post_invoice_deductions 
+    WHERE product_code = @p_code;
+    
+    RETURN ISNULL(@avg_disc, 0);
+END;
+GO
+
+-- 16.Top Purchaser in Each Region
+-- Customer with highest total purchase quantity per region
+WITH RegionPurchases AS (
+    SELECT 
+        c.region,
+        c.customer_code,
+        c.customer,
+        SUM(s.sold_quantity) AS total_purchased,
+        DENSE_RANK() OVER (
+            PARTITION BY c.region 
+            ORDER BY SUM(s.sold_quantity) DESC
+        ) AS rnk
+    FROM fact_sales_monthly s
+    JOIN dim_customer c ON s.customer_code = c.customer_code
+    GROUP BY c.region, c.customer_code, c.customer
+)
+SELECT region, customer_code, customer, total_purchased
+FROM RegionPurchases
+WHERE rnk = 1;
+
+--17. Stored Procedure: Total Revenue for Period
+-- Procedure calculating total gross revenue between start and end dates
+CREATE PROCEDURE sp_get_total_period_revenue
+    @start_date DATE,
+    @end_date DATE
+AS
+BEGIN
+    SELECT 
+        SUM(s.sold_quantity * g.gross_price) AS total_gross_revenue
+    FROM fact_sales_monthly s
+    JOIN fact_gross_price g 
+        ON s.product_code = g.product_code
+        AND YEAR(DATEADD(month, 4, s.date)) = g.fiscal_year
+    WHERE s.date BETWEEN @start_date AND @end_date;
+END;
+GO
+
+-- 18. Trigger: Auto-Update Forecast on Product Addition
+-- Trigger adding default forecast entry when a new product is added to catalog
+CREATE TRIGGER trg_add_default_forecast
+ON dim_product
+AFTER INSERT
+AS
+BEGIN
+    INSERT INTO fact_forecast_monthly (date, fiscal_year, product_code, customer_code, forecast_quantity)
+    SELECT 
+        GETDATE(), 
+        YEAR(DATEADD(month, 4, GETDATE())), 
+        i.product_code, 
+        70002017, -- Default baseline customer
+        100      -- Default initial forecast quantity
+    FROM inserted i;
+END;
+GO
+
+-- 19. Trigger: Outlier Detection on Monthly Sales
+-- Audit table for sales anomalies
+CREATE TABLE sales_outliers (
+    date DATE,
+    product_code VARCHAR(45),
+    customer_code INT,
+    sold_quantity INT,
+    flagged_reason VARCHAR(255)
+);
+GO
+
+-- Trigger flagging transactions exceeding 3x the average sold quantity
+CREATE TRIGGER trg_flag_sales_outliers
+ON fact_sales_monthly
+AFTER INSERT
+AS
+BEGIN
+    DECLARE @avg_qty FLOAT;
+    SELECT @avg_qty = AVG(sold_quantity) FROM fact_sales_monthly;
+
+    INSERT INTO sales_outliers (date, product_code, customer_code, sold_quantity, flagged_reason)
+    SELECT date, product_code, customer_code, sold_quantity, 'Quantity > 3x average'
+    FROM inserted
+    WHERE sold_quantity > (@avg_qty * 3);
+END;
+GO
+
+-- 20. Products with Highest Average Gross Price
+-- Query retrieving top 5 products by average gross price across all fiscal years
+SELECT TOP 5
+    p.product_code,
+    p.product,
+    p.variant,
+    ROUND(AVG(g.gross_price), 2) AS avg_gross_price
+FROM fact_gross_price g
+JOIN dim_product p ON g.product_code = p.product_code
+GROUP BY p.product_code, p.product, p.variant
+ORDER BY avg_gross_price DESC;
+
+
+-- Task 6: Forecast Accuracy Analysis
+
+-- SQL Query with Pivot Table & Accuracy %
+-- Forecast Accuracy Calculation Query using Pivot Table Logic
+WITH MonthlyAgg AS (
+    SELECT 
+        s.product_code,
+        YEAR(DATEADD(month, 4, s.date)) AS fiscal_year,
+        MONTH(s.date) AS month_num,
+        SUM(s.sold_quantity) AS actual_qty,
+        SUM(f.forecast_quantity) AS forecast_qty
+    FROM fact_sales_monthly s
+    FULL OUTER JOIN fact_forecast_monthly f 
+        ON s.product_code = f.product_code 
+        AND s.customer_code = f.customer_code 
+        AND s.date = f.date
+    WHERE s.product_code = 'A0118150101' -- Target product
+    GROUP BY s.product_code, YEAR(DATEADD(month, 4, s.date)), MONTH(s.date)
+)
+SELECT 
+    fiscal_year,
+    -- Pivoted Sold vs Forecast side by side for Sep (Month 9) and Oct (Month 10)
+    ISNULL(SUM(CASE WHEN month_num = 9 THEN forecast_qty END), 0) AS sep_forecast,
+    ISNULL(SUM(CASE WHEN month_num = 9 THEN actual_qty END), 0) AS sep_actual,
+    ROUND(
+        ISNULL(SUM(CASE WHEN month_num = 9 THEN actual_qty END), 0) * 100.0 / 
+        NULLIF(SUM(CASE WHEN month_num = 9 THEN forecast_qty END), 0), 2
+    ) AS sep_accuracy_pct
+FROM MonthlyAgg
+GROUP BY fiscal_year;
+
+
